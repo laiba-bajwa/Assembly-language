@@ -1,25 +1,630 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.11.35312.102
-MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Assembly Language3", "Assembly Language3\Assembly Language3.vcxproj", "{09057B55-D8CD-4E97-9111-EDA713084578}"
-EndProject
-Global
-	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|x86 = Debug|x86
-		Release|x86 = Release|x86
-	EndGlobalSection
-	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{09057B55-D8CD-4E97-9111-EDA713084578}.Debug|x86.ActiveCfg = Debug|Win32
-		{09057B55-D8CD-4E97-9111-EDA713084578}.Debug|x86.Build.0 = Debug|Win32
-		{09057B55-D8CD-4E97-9111-EDA713084578}.Release|x86.ActiveCfg = Release|Win32
-		{09057B55-D8CD-4E97-9111-EDA713084578}.Release|x86.Build.0 = Release|Win32
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {79E807E0-247F-4193-A2FC-E7FE8B142D90}
-	EndGlobalSection
-EndGlobal
+include Irvine32.inc
+include macros.inc
+
+buffsize = 100
+
+.data
+filename BYTE "info.txt", 0 
+fileHandle HANDLE ? 
+newline byte 0Ah,0Dh,0
+f byte "file_1.txt",0
+ 
+str1 BYTE "Bin Conversion"  ,0  
+str3 BYTE "Dec Conversion",0    
+str2 BYTE "Oct Conversion",0    
+str4 BYTE "Hex Conversion",0    
+buffer byte buffsize dup(?)
+lstr1 dd 17
+buffer2 byte buffsize dup(?)
+
+    welcomeMessage db 'WELCOME TO BASE CHANGING CALCULATOR...', 0
+	binaryArray BYTE 8 DUP(0)  
+    prompt BYTE "Enter an 8-bit binary number: ", 0
+    decimalValue DWORD ?
+    octalValue DWORD ?
+    hexValue DWORD ?
+    onec dd ?
+	a=12
+	lenstr1 dd ?
+	sce dd 0
+	dec_res dd ?
+	choice dd ?
+	arr dd buffsize dup (?)
+    s1 byte " Enter octal value (0-7) : ", 0
+    s2 byte " The input is invalid :( Try again.", 0
+    
+    octalArray byte 11 DUP(0)
+    decMsg byte "Decimal: ", 0
+    binMsg byte "Binary: ", 0
+    hexadecimalMsg byte "Hexadecimal: ", 0
+    binaryResult byte 33 DUP(0)
+       prompt1 BYTE "Enter a decimal number: ", 0
+    binaryMsg1 BYTE "Binary: ", 0
+    octalMsg1 BYTE "Octal: ", 0
+    hexMsg1 BYTE "Hexadecimal: ", 0
+    decimalValue1 dd ?
+
+
+
+.code
+
+input proc
+	
+	mwrite "Enter the hexa-decimal number : "
+
+ret
+input endp
+
+menu proc
+
+	mwrite "1. to convert hexadecimal into binary."
+	call crlf
+	mwrite "2. to convert hexadecimal into octal."
+	call crlf
+	mwrite "3. to convert hexadecimal into decimal."
+	call crlf
+	mwrite "Enter your choice: "
+	call readint
+	mov choice,eax
+	
+ret
+menu endp
+
+invalid proc
+	mwrite "Invalid choice. Try again."
+	
+ret 
+invalid endp
+
+decimal proc	
+	.if (al >= '0' && al <= '9')
+		sub al, '0'  
+		movzx edx, al          ; Zero-extend AL into EDX (convert to 32-bit)
+		mov eax, edx           ; Add the zero-extended value to EAX
+	.elseif (al == 'A' || al == 'a')
+		mov eax,10
+	.elseif (al == 'B' || al == 'b')
+		mov eax,11
+	.elseif (al == 'C' || al == 'c')
+		mov eax,12
+	.elseif (al == 'D' || al == 'd')
+		mov eax,13
+	.elseif (al == 'E' || al == 'e')
+		mov eax,14
+	.elseif (al == 'F' || al == 'f')
+		mov eax,15
+	.else
+		mwrite 	"Invalid Input."
+		exit
+	.endif
+
+	.if (sce == 0)
+		mov ebx,eax
+		add sce,1
+	.else
+		imul ebx,16
+		add ebx,eax
+	.endif
+	
+ret 
+decimal endp
+
+octal proc
+	mov edi,offset arr 
+	mov ecx,a
+
+	k:	
+		mov edx,0
+		mov esi,8
+		div esi
+		mov ebx,eax
+		mov eax,edx
+		mov [edi],eax
+		mov eax,ebx
+		add edi,type arr
+	loop k
+
+
+ret 
+octal endp
+
+binary proc
+	mov edi,offset arr 
+	mov ecx,a
+
+	j:
+		mov edx,0
+		mov esi,2
+		div esi
+		mov ebx,eax
+		mov eax,edx
+		mov [edi],eax
+		mov eax,ebx
+		add edi,type arr
+	loop j
+
+ret 
+binary endp
+
+output proc
+	mov eax,a
+	mov ecx,2
+	mov edx,0
+	div ecx
+	mov ecx,eax
+	mov esi,offset arr
+
+	mov eax,a
+	.while(eax>1)
+		add esi, type arr
+		dec eax
+	.endw	
+
+	mov ecx,a
+	.while(ecx>0)
+		mov eax, [esi]
+		call writedec
+		dec ecx
+		sub esi, type arr
+	.endw
+
+ret
+output endp
+    
+main PROC
+
+    mov esi, offset welcomeMessage 
+
+printCharLoop:
+    mov eax, red + (white * 16)  
+    call SetTextColor             
+
+    mov al, [esi]  
+    test al, al  
+    jz done       
+
+    call WriteChar  
+    call CustomDelay      
+
+    inc esi  
+    jmp printCharLoop  
+
+done:
+                             
+
+    .while(true)
+        mov edx, OFFSET filename     
+        call CreateOutputFile         
+        mov fileHandle, eax   
+        mov eax, white + (black * 16)  
+        call SetTextColor  
+        call crlf
+        call crlf
+        call crlf
+        mwrite "Choose from the following menu: "
+        call crlf
+        mwrite "1. to convert from binary"
+        call crlf
+        mwrite "2. to convert from octal"
+        call crlf
+        mwrite "3. to convert from decimal"
+        call crlf
+        mwrite "4. to convert from hexadecimal"
+        call crlf
+        mwrite "5. to exit"
+        call crlf
+        call crlf
+        mov eax, lightGreen + (black * 16)
+        call SetTextColor
+        mwrite "Enter your choice: "
+        call readint
+    
+      mov onec,eax
+
+      mov eax, white + (black * 16)  
+      call SetTextColor  
+
+      .if(onec==1)
+    call ReadBinary
+    mwrite "Press 1 to convert from binary to Decimal"
+    call crlf
+    mwrite "Press 2 to convert from binary to Octal"
+    call crlf
+    mwrite "Press 3 to convert from binary to Hexadecimal"
+    call crlf
+    mwrite "Enter your choice: "
+    call readint
+    mov choice, eax
+      .if(choice==1)  
+      call ConvertBinaryToDecimal
+      call DisplayDecimal
+     .elseif(choice==2)
+      call ConvertBinaryToDecimal
+      call ConvertDecimalToOctal
+     .elseif(choice==3)
+      call ConvertBinaryToDecimal
+      call DisplayHexadecimal
+     .else
+      mwrite"Invalid choice"
+     .endif
+
+
+   
+      mov edx, OFFSET str1           
+        mov ecx, lstr1                  
+        mov eax, fileHandle            
+        call WriteToFile
+        mov eax, fileHandle 
+        
+      .elseif(onec==2)
+      mov edx, OFFSET str2           
+        
+        call crlf 
+        mwrite " ---> Conversion From Octal to Decimal, Binary, and Hexadecimal "
+    call crlf
+
+    
+    mov edx, offset s1
+    call writestring
+    mov edx, offset octalArray
+    mov ecx, 11
+    call ReadString
+    call OctalConverter
+    ; Octal to Decimal 
+    call OctalToDecimal
+    mov edx, offset decMsg
+    call writestring
+    call writedec                
+    call crlf
+
+    
+    push eax                     ; Save EAX (decimal value) on the stack
+
+    ; Octal to Binary 
+    call DecimalToBinary         
+    mov edx, offset binMsg
+    call writestring
+    mov edx, offset binaryResult
+    call writestring
+    call crlf
+
+    ; Octal to Hexadecimal 
+    pop eax                      ; Restore decimal value into EAX
+    mov edx, offset hexadecimalMsg
+    call writestring
+    call WriteHex                 
+    call crlf
+
+
+        mov edx, OFFSET str2           
+        mov ecx, lstr1                  
+        mov eax, fileHandle            
+        call WriteToFile
+        mov eax, fileHandle 
+      .elseif(onec==3)
+     
+        call crlf 
+         mwrite " ---> Conversion From Decimal to Binary, Octal and Hexadecimal "
+         call crlf
+    
+         mov edx, offset prompt1
+        call WriteString
+        call Readint           ; Read decimal input from user
+        mov decimalValue1, eax 
+
+    
+        mov eax, decimalValue1
+        mov edx, offset binaryMsg1
+        call WriteString
+       mov ecx,0        ; Clear ECX for binary digit count
+
+    convert_to_binary:
+       mov edx,0          ; Clear remainder
+    mov ebx, 2             ; Divisor for binary
+    div ebx                ; EAX = EAX / 2, EDX = EAX % 2
+    push edx               ; Push binary digit onto the stack
+    inc ecx                ; Increment digit count
+    cmp eax, 0             ; Check if quotient is zero
+    jnz convert_to_binary
+
+print_binary:
+    pop edx                ; Retrieve binary digit      
+    mov eax,edx
+    call Writedec        ; Print binary digit
+    loop print_binary      ; Repeat until stack is empty
+    call Crlf
+
+    ; Convert and display octal representation
+    mov eax, decimalValue1
+    mov edx, offset octalMsg1
+    call WriteString
+    mov ecx,0           ; Clear ECX for octal digit count
+
+convert_to_octal1:
+    mov edx,0          ; Clear remainder
+    mov ebx, 8             ; Divisor for octal
+    div ebx                ; EAX = EAX / 8, EDX = EAX % 8
+    push edx               ; Push octal digit onto the stack
+    inc ecx                ; Increment digit count
+    cmp eax, 0             ; Check if quotient is zero
+    jnz convert_to_octal1
+
+print_octal1:
+    pop edx                ; Retrieve octal digit
+         
+    mov eax,edx
+    call Writedec         ; Print octal digit
+    loop print_octal1       ; Repeat until stack is empty
+    call Crlf
+
+    ; Convert and display hexadecimal representation
+    mov eax, decimalValue1
+    mov edx, offset hexMsg1
+    call WriteString
+    call WriteHex          ; Irvine32 provides WriteHex for hexadecimal output
+    call Crlf
+      
+       mov edx, OFFSET str3          
+        mov ecx, lstr1                  
+        mov eax, fileHandle            
+        call WriteToFile
+        mov eax, fileHandle 
+      
+      .elseif(onec==4)
+      
+        call crlf 
+            call input
+	        mov edx,offset str1
+        	mov ecx,buffsize
+	        call readstring
+           	mov lenstr1,eax
+
+        	call crlf
+           	call menu
+        	pop eax
+
+        	.if(choice==1)		;into binary
+        		mov esi,offset str1
+	          	mov ecx,lenstr1
+
+	          	.while(ecx>0)
+	          		mov al,[esi]
+
+	        		call decimal
+	    	    	add esi,1
+	        		dec ecx
+	        	.endw
+
+	        	mov eax,ebx
+	        	call binary
+	        	call output
+
+	         .elseif (choice==2)		;into octal
+	       	    mov esi,offset str1
+	        	mov ecx,lenstr1
+                mov ebx,0
+
+	           	.while(ecx>0)
+	        		mov al,[esi]
+	          		call decimal
+	        		add esi,1
+	        		dec ecx
+	          	.endw
+
+	           	mov eax,ebx
+	          	call crlf
+	         	call octal
+	        	call output
+
+	        .elseif (choice==3)		;;into decimal
+        		mov esi,offset str1
+        		mov ecx,lenstr1
+
+	           	.while(ecx>0)
+	    	    	mov al,[esi]
+		    	    call decimal
+	         		add esi,1
+	         		dec ecx
+	          	.endw
+		
+	         	mov eax,ebx
+	         	mwrite "The decimal result is: "
+	    	    call writedec
+
+        	.else		;;for unexpected input
+        		call invalid
+    	       	call crlf     
+             .endif
+
+
+        mov edx, OFFSET str4           
+        mov ecx, lstr1                  
+        mov eax, fileHandle            
+        call WriteToFile
+        mov eax, fileHandle 
+
+      .elseif(onec==5)
+        call read
+        mov edx,offset buffer 
+        call writestring          
+         call crlf 
+
+        exit
+       
+
+      .else
+        mov eax, white + (red * 16)
+        call SetTextColor
+        mwrite"INVALID INPUT"
+
+       .endif
+
+       
+
+
+    .endw
+    call closefile
+Exit 
+main ENDP
+
+read proc
+ mov edx,offset f
+ call openinputfile 
+ mov filehandle,eax
+
+
+mov edx,offset buffer 
+mov ecx,buffsize 
+call readfromfile ; Store the number of bytes read
+
+
+
+ ret
+read endp
+
+ReadBinary PROC
+    mov edx, offset prompt
+    call WriteString 
+    mov edx, offset binaryArray
+    mov ecx, 9          
+    call ReadString
+    ret
+ReadBinary ENDP
+
+ConvertBinaryToDecimal PROC
+    mov ecx, 8          
+    xor eax, eax        
+    xor ebx, ebx        
+
+convert_loop:
+    movzx edx, BYTE PTR [binaryArray + ebx] 
+    cmp edx, '1'       
+    jne skip_addition  
+
+    shl eax, 1        
+    add eax, 1        
+    jmp next_digit
+
+skip_addition:
+    shl eax, 1        
+
+next_digit:
+    inc ebx            
+    loop convert_loop  
+
+    mov decimalValue, eax
+    ret
+ConvertBinaryToDecimal ENDP
+
+DisplayDecimal PROC
+    mov eax, decimalValue
+    mwrite "Decimal value:"
+    call WriteDec
+    call Crlf
+    ret
+DisplayDecimal ENDP
+
+ConvertDecimalToOctal PROC
+    mov ebx, decimalValue
+    xor ecx, ecx      
+
+convert_to_octal:
+    xor edx, edx      
+    mov eax, ebx      
+    mov ebx, 8        
+    div ebx           
+    push edx          
+    inc ecx           
+    mov ebx, eax      
+    cmp eax, 0        
+    jnz convert_to_octal
+
+    mov octalValue, ecx
+
+    mwrite "Octal value:"
+    mov ebx, ecx      
+    
+print_octal:
+    pop edx           
+    mov eax,edx
+    call WriteDec     
+    dec ebx           
+    jnz print_octal   
+
+    ret
+ConvertDecimalToOctal ENDP
+
+DisplayHexadecimal PROC
+    mwrite "Hexadecimal Value:"
+    mov eax, decimalValue
+    call WriteHex
+    call Crlf
+    ret
+DisplayHexadecimal ENDP
+
+    CustomDelay PROC
+        push ecx            ; Save the register
+        mov ecx, 50000000   ; Adjust this value for the desired delay (larger = slower)
+    delayLoop:
+        loop delayLoop      ; Loop until ECX reaches 0
+        pop ecx             ; Restore the register
+        ret
+    CustomDelay ENDP
+
+OctalConverter proc
+OctalToDecimal proc
+    mov eax, 0                    ; Initialize EAX to 0
+    mov edx, offset octalArray    
+
+decimalloop:
+    movzx ecx, byte PTR [edx]    
+    cmp ecx, 0                    
+    je e
+
+    sub ecx, '0'                  ; Convert ASCII to numeric
+    imul eax, eax, 8              ; Multiply EAX by 8
+    add eax, ecx                  ; Add current digit value
+    inc edx                       ; Move to next character
+    jmp decimalloop
+
+e:
+    ret
+OctalToDecimal endp
+
+
+DecimalToBinary proc
+    ; EAX contains the decimal value to be converted to binary (from OctalToDecimal)
+    mov esi, offset binaryResult  
+    mov ecx, 0 
+    convertToBinaryLoop:
+    mov edx, 0                    ; Clear remainder
+    mov ebx, 2                    ; Divisor for binary
+    div ebx                       ; EAX = EAX / 2, EDX = EAX % 2
+    add dl, '0'                   ; Convert remainder to ASCII
+    mov byte PTR [esi], dl        ; Store binary digit
+    inc esi                       ; Move to next buffer position
+    inc ecx                       ; Increment digit counter
+    cmp eax, 0                    ; Check if division is complete
+    jnz convertToBinaryLoop
+
+    ; Reverse the binary string (stored in reverse order)
+    dec esi                       ; Adjust pointer to last valid digit
+    mov edi, offset binaryResult  ; Pointer to the start of the result buffer
+
+reverseBinaryLoop:
+    cmp edi, esi                  ; Check if pointers meet
+    jge reverseBinaryDone         ; Exit loop if done
+    mov al, byte PTR [edi]        ; Swap bytes
+    mov bl, byte PTR [esi]
+    mov byte PTR [edi], bl
+    mov byte PTR [esi], al
+    inc edi                       ; Move forward
+    dec esi                       ; Move backward
+    jmp reverseBinaryLoop
+    reverseBinaryDone:
+    mov byte PTR [edi + ecx], 0   ; Null-terminate the binary string
+    ret
+DecimalToBinary endp
+
+OctalConverter endp
+end main
